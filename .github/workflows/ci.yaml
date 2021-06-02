@@ -30,5 +30,8 @@ jobs:
           path: ~/.stack
           key: ${{ runner.os }}-8.10.4-stack
 
+      - name: Install Dependencies
+        run: stack build --only-dependencies
+
       - name: Build
-        run: stack build --system-ghc
+        run: stack build
