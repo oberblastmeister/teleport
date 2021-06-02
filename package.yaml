@@ -33,6 +33,8 @@ default-extensions:
 - OverloadedStrings
 - RecordWildCards
 - LambdaCase
+- DeriveGeneric
+- TemplateHaskell
 
 ghc-options:
 - -Wall
