@@ -24,10 +24,14 @@ jobs:
           stack-version: 'latest'
           stack-no-global: true
 
+      - if: matrix.os == 'windows-latest'
+        run: echo "STACK_ROOT=%LOCALAPPDATA%\Programs\stack" >> $GITHUB_ENV
+
+      - if: matrix.os != 'windows-latest'
+        run: echo "STACK_ROOT=~/.stack" >> $GITHUB_ENV
+
       - name: Get Stack Root
-        run: |
-          echo "STACK_ROOT=$(stack path --stack-root)" >> $GITHUB_ENV
-          echo ${{ env.STACK_ROOT }}
+        run: echo ${{ env.STACK_ROOT }}
 
       - name: Cache stack directories
         uses: actions/cache@v2.1.3
