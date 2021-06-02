@@ -1,4 +1,4 @@
-module TpData
+module Teleport.TpData
   ( TpPoint (..),
     TpData (..),
     defaultTpData,

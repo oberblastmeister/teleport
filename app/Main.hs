@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import Filesystem.Path.CurrentOS as Path
 import Options.Applicative
 import qualified System.Console.ANSI as ANSI
-import TpData
+import Teleport
 import qualified Turtle
 import Prelude hiding (FilePath)
 
@@ -17,89 +17,7 @@ showHelpOnErrorExecParser :: ParserInfo a -> IO a
 showHelpOnErrorExecParser = customExecParser (prefs showHelpOnError)
 
 main :: IO ()
-main = do
-  command <-
-    showHelpOnErrorExecParser
-      ( info
-          (helper <*> parseCommand)
-          ( fullDesc
-              <> progDesc tpProgDesc
-              <> header tpHeader
-          )
-      )
-  run command
-
-parseCommand :: Parser Command
-parseCommand =
-  subparser $
-    command
-      "add"
-      ( info
-          (helper <*> parseAddCommand)
-          (fullDesc <> progDesc "add a teleport")
-      )
-      <> command
-        "list"
-        ( info
-            (helper <*> parseListCommand)
-            (fullDesc <> progDesc "list all teleport points")
-        )
-      <> command
-        "remove"
-        ( info
-            (helper <*> parseRemoveCommand)
-            (fullDesc <> progDesc "remove a teleport point")
-        )
-      <> command
-        "goto"
-        ( info
-            (helper <*> parseGotoCommand)
-            (fullDesc <> progDesc "go to a create a teleport point")
-        )
-
-parseListCommand :: Parser Command
-parseListCommand = pure CommandList
-
-parseAddCommand :: Parser Command
-parseAddCommand =
-  CommandAdd <$> tpnameParser <*> folderParser
-
-parseRemoveCommand :: Parser Command
-parseRemoveCommand = CommandRemove <$> tpnameParser
-
-parseGotoCommand :: Parser Command
-parseGotoCommand = CommandGoto <$> tpnameParser
-
-tpnameParser :: Parser String
-tpnameParser =
-  argument
-    str
-    ( metavar
-        "NAME"
-        <> help
-          "name of the teleport point for usage"
-    )
-
-readFolderPath :: String -> ReadM FilePath
-readFolderPath s = do
-  let path = Path.fromText (T.pack s)
-  if Path.valid path
-    then return path
-    else readerError ("invalid path: " ++ show path)
-
-folderParser :: Parser FilePath
-folderParser =
-  argument
-    ( str
-        >>= readFolderPath
-    )
-    ( value "./"
-        <> metavar "FOLDERPATH"
-        <> help
-          ( "path of the teleport folder to teleport to."
-              ++ "By default, taken as current working directory"
-          )
-    )
+main = parseOptions >>= run
 
 runAdd :: FilePath -> String -> IO ()
 runAdd folderPath addname = do
@@ -140,14 +58,6 @@ run = \case
   CommandList -> runList
   CommandRemove {..} -> runRemove removeName
   CommandGoto {..} -> runGoto gotoName
-
-tpProgDesc :: String
-tpProgDesc =
-  "use teleport to setup teleport points and move to these "
-    ++ "when needed"
-
-tpHeader :: String
-tpHeader = "Teleport: move around your filesystem"
 
 setErrorColor :: IO ()
 setErrorColor =
@@ -287,15 +197,3 @@ runGoto gotoName = do
     Just tpPoint -> do
       Turtle.echo $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
       Turtle.exit $ Turtle.ExitFailure 2
-
-data Command
-  = CommandList
-  | CommandAdd
-      { addName :: String,
-        folderPath :: FilePath
-      }
-  | CommandRemove
-      {removeName :: String}
-  | CommandGoto
-      {gotoName :: String}
-  deriving (Show)

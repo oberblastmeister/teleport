@@ -25,8 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
-      TpData
+      Teleport
+      Teleport.Options
+      Teleport.TpData
   other-modules:
       Paths_teleport
   hs-source-dirs:
