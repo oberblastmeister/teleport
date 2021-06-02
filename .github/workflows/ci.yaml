@@ -32,4 +32,4 @@ jobs:
           key: ${{ runner.os }}-8.10.4-stack
 
       - name: Build
-        run: stack build --sytem-ghc
+        run: stack build --system-ghc
