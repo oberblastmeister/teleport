@@ -22,6 +22,7 @@ jobs:
         with:
           ghc-version: 8.10.4
           enable-stack: true
+          enable-cabal: false
           stack-version: 'latest'
 
       - name: Cache stack directories
@@ -31,4 +32,4 @@ jobs:
           key: ${{ runner.os }}-8.10.4-stack
 
       - name: Build
-        run: stack build
+        run: stack build --sytem-ghc
