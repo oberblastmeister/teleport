@@ -14,7 +14,7 @@ data TpPoint = TpPoint
   { name :: String,
     absFolderPath :: String
   }
-  deriving (Show)
+  deriving (Show, Eq)
 
 instance JSON.FromJSON TpPoint where
   parseJSON (JSON.Object json) =

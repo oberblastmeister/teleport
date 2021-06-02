@@ -1,33 +1,63 @@
 module Main where
 
+import Control.Exception
 import Control.Monad
 import qualified Data.Aeson as JSON
 import qualified Data.ByteString.Lazy as B
+import Data.Data (Typeable)
 import Data.List
 import Data.Maybe
 import qualified Data.Text as T
+import Data.Typeable (cast)
 import Filesystem.Path.CurrentOS as Path
-import Options.Applicative
 import qualified System.Console.ANSI as ANSI
 import Teleport
 import qualified Turtle
 import Prelude hiding (FilePath)
 
-showHelpOnErrorExecParser :: ParserInfo a -> IO a
-showHelpOnErrorExecParser = customExecParser (prefs showHelpOnError)
+data AppException
+  = DirNotFound FilePath
+  | FileNotFound FilePath
+  | NeedDirNotFile FilePath
+  | TpPointNotFound String
+  | TpPointExists TpPoint
+  | JSONParseError FilePath String
+  deriving (Eq, Typeable)
+
+instance Show AppException where
+  show (DirNotFound path) = "unable to find directory " ++ show path
+  show (FileNotFound path) = "unable to find file " ++ show path
+  show (NeedDirNotFile path) = "path " ++ show path ++ " was a directory instead of a file"
+  show (TpPointNotFound name) = name ++ " tp point not found"
+  show (TpPointExists tp) = "tp point " ++ name tp ++ " already exists!"
+  show (JSONParseError path err) =
+    "parse error in: " ++ show path
+      ++ "\nerror:------\n"
+      ++ err
+
+instance Exception AppException where
+  toException e = SomeException e
+  fromException (SomeException e) = cast e
+
+handleAppException :: AppException -> IO ()
+handleAppException e = do
+  setErrorColor
+  putStrLn $ "error: " ++ show e
 
 main :: IO ()
-main = parseOptions >>= run
+main = do
+  opts <- parseOptions
+  catch (run opts) handleAppException
 
 runAdd :: FilePath -> String -> IO ()
 runAdd folderPath addname = do
-  dieFolderNotFound folderPath
+  _ <- throwIO $ DirNotFound folderPath
   tpDataPath <- getTpDataPath
   tpData <- loadTpData tpDataPath
   absFolderPath <- Turtle.realpath folderPath
   let existingTpPoint = find (\tp -> name tp == addname) (tpPoints tpData)
   case existingTpPoint of
-    Just tpPoint -> dieTpPointExists tpPoint
+    Just tpPoint -> throwIO $ TpPointExists tpPoint
     Nothing -> do
       let newTpPoint =
             TpPoint
@@ -72,38 +102,6 @@ setErrorColor =
         ANSI.Red
     ]
 
-needFolderNotFileError :: FilePath -> IO ()
-needFolderNotFileError path = do
-  setErrorColor
-  let errorstr = T.pack $ "expected folder, not file: " ++ show path
-  Turtle.die errorstr
-
-folderNotFoundError :: FilePath -> IO ()
-folderNotFoundError path = do
-  setErrorColor
-  let errorStr = T.pack $ "unable to find folder: " ++ show path
-  Turtle.die errorStr
-
-dieFolderNotFound :: FilePath -> IO ()
-dieFolderNotFound path = do
-  folderExists <- Turtle.testdir path
-  fileExists <- Turtle.testfile path
-  when fileExists (needFolderNotFileError path)
-  unless folderExists (folderNotFoundError path)
-
-dieTpPointExists :: TpPoint -> IO ()
-dieTpPointExists tpPoint = do
-  setErrorColor
-  putStrLn $ "teleport point " ++ name tpPoint ++ " already exists:\n"
-  tpPointPrint tpPoint
-  Turtle.die ""
-
-dieTpPointNotFound :: String -> IO ()
-dieTpPointNotFound name = do
-  setErrorColor
-  let errorname = T.pack (name ++ " tp point not found")
-  Turtle.die errorname
-
 getTpDataPath :: IO FilePath
 getTpDataPath = do
   homeFolder <- Turtle.home
@@ -117,14 +115,6 @@ saveTpData jsonFilePath tpData = do
 
 createTpDataFile :: FilePath -> IO ()
 createTpDataFile jsonFilePath = saveTpData jsonFilePath defaultTpData
-
-dieJSONParseError :: FilePath -> String -> IO a
-dieJSONParseError jsonFilePath err = do
-  let errorstr =
-        "parse error in: " ++ show jsonFilePath
-          ++ "\nerror:------\n"
-          ++ err
-  Turtle.die (T.pack errorstr)
 
 loadTpData :: FilePath -> IO TpData
 loadTpData jsonFilePath = do
@@ -143,7 +133,7 @@ decodeTpData jsonFilePath = do
   rawInput <- B.readFile (filePathToString jsonFilePath)
   let jsonResult = JSON.eitherDecode' rawInput
   case jsonResult of
-    Left err -> dieJSONParseError jsonFilePath err
+    Left err -> throwIO $ JSONParseError jsonFilePath err
     Right json -> return json
 
 runRemove :: String -> IO ()
@@ -153,7 +143,7 @@ runRemove removeName = do
 
   let wantedTpPoint = find (\tp -> name tp == removeName) (tpPoints tpData)
   case wantedTpPoint of
-    Nothing -> dieTpPointNotFound removeName
+    Nothing -> throwIO $ TpPointNotFound removeName
     Just _ -> do
       let newTpPoints = filter (\tp -> name tp /= removeName) (tpPoints tpData)
 
@@ -193,7 +183,7 @@ runGoto gotoName = do
 
   let wantedTpPoint = find (\tp -> name tp == gotoName) (tpPoints tpData)
   case wantedTpPoint of
-    Nothing -> dieTpPointNotFound gotoName
+    Nothing -> throwIO $ TpPointNotFound gotoName
     Just tpPoint -> do
       Turtle.echo $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
       Turtle.exit $ Turtle.ExitFailure 2
