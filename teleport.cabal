@@ -1,0 +1,95 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           teleport
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/teleport#readme>
+homepage:       https://github.com/githubuser/teleport#readme
+bug-reports:    https://github.com/githubuser/teleport/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2021 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/teleport
+
+library
+  exposed-modules:
+      Lib
+      TpData
+  other-modules:
+      Paths_teleport
+  hs-source-dirs:
+      src
+  default-extensions:
+      OverloadedStrings
+      RecordWildCards
+      LambdaCase
+  ghc-options: -Wall
+  build-depends:
+      aeson
+    , ansi-terminal
+    , base >=4.7 && <5
+    , bytestring
+    , optparse-applicative
+    , system-filepath
+    , text
+    , turtle
+  default-language: Haskell2010
+
+executable teleport-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_teleport
+  hs-source-dirs:
+      app
+  default-extensions:
+      OverloadedStrings
+      RecordWildCards
+      LambdaCase
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , ansi-terminal
+    , base >=4.7 && <5
+    , bytestring
+    , optparse-applicative
+    , system-filepath
+    , teleport
+    , text
+    , turtle
+  default-language: Haskell2010
+
+test-suite teleport-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_teleport
+  hs-source-dirs:
+      test
+  default-extensions:
+      OverloadedStrings
+      RecordWildCards
+      LambdaCase
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , ansi-terminal
+    , base >=4.7 && <5
+    , bytestring
+    , optparse-applicative
+    , system-filepath
+    , teleport
+    , text
+    , turtle
+  default-language: Haskell2010
