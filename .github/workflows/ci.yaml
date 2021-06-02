@@ -22,7 +22,6 @@ jobs:
         with:
           ghc-version: 8.10.4
           enable-stack: true
-          enable-cabal: false
           stack-version: 'latest'
 
       - name: Cache stack directories
