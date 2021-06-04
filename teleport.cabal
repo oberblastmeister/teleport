@@ -27,6 +27,7 @@ library
   exposed-modules:
       Teleport
       Teleport.Options
+      Teleport.Path
       Teleport.TpData
   other-modules:
       Paths_teleport
@@ -38,13 +39,23 @@ library
       LambdaCase
       DeriveGeneric
       TemplateHaskell
+      QuasiQuotes
+      MultiParamTypeClasses
+      FunctionalDependencies
+      FlexibleInstances
+      InstanceSigs
+      TypeApplications
   ghc-options: -Wall
   build-depends:
       aeson
     , ansi-terminal
     , base >=4.7 && <5
     , bytestring
+    , directory
+    , exceptions
     , optparse-applicative
+    , path
+    , path-io
     , system-filepath
     , text
     , turtle
@@ -62,13 +73,23 @@ executable teleport-exe
       LambdaCase
       DeriveGeneric
       TemplateHaskell
+      QuasiQuotes
+      MultiParamTypeClasses
+      FunctionalDependencies
+      FlexibleInstances
+      InstanceSigs
+      TypeApplications
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , ansi-terminal
     , base >=4.7 && <5
     , bytestring
+    , directory
+    , exceptions
     , optparse-applicative
+    , path
+    , path-io
     , system-filepath
     , teleport
     , text
@@ -88,13 +109,23 @@ test-suite teleport-test
       LambdaCase
       DeriveGeneric
       TemplateHaskell
+      QuasiQuotes
+      MultiParamTypeClasses
+      FunctionalDependencies
+      FlexibleInstances
+      InstanceSigs
+      TypeApplications
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , ansi-terminal
     , base >=4.7 && <5
     , bytestring
+    , directory
+    , exceptions
     , optparse-applicative
+    , path
+    , path-io
     , system-filepath
     , teleport
     , text

@@ -3,17 +3,18 @@ module Main where
 import Control.Exception
 import Control.Monad
 import qualified Data.Aeson as JSON
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy as LB
 import Data.Data (Typeable)
 import Data.List
 import Data.Maybe
-import qualified Data.Text as T
 import Data.Typeable (cast)
 import Filesystem.Path.CurrentOS as Path
 import qualified System.Console.ANSI as ANSI
 import Teleport
 import qualified Turtle
 import Prelude hiding (FilePath)
+import Path
+import Path.IO
 
 data AppException
   = DirNotFound FilePath
@@ -21,7 +22,7 @@ data AppException
   | NeedDirNotFile FilePath
   | TpPointNotFound String
   | TpPointExists TpPoint
-  | JSONParseError FilePath String
+  | JSONParseError (Path Abs File) String
   deriving (Eq, Typeable)
 
 instance Show AppException where
@@ -49,12 +50,21 @@ main = do
   opts <- parseOptions
   catch (run opts) handleAppException
 
-runAdd :: FilePath -> String -> IO ()
+makeAbsCWD :: SomeBase t -> IO (Path Abs t)
+makeAbsCWD someBase = case someBase of
+  Abs p -> return p
+  Rel p -> do
+    undefined
+    -- cwd <- getCurrentDirectory
+    -- return ((parseAbsDir cwd) </> p)
+
+
+runAdd :: Path Abs Dir -> String -> IO ()
 runAdd folderPath addname = do
-  _ <- throwIO $ DirNotFound folderPath
+  -- _ <- throwIO $ DirNotFound folderPath
   tpDataPath <- getTpDataPath
   tpData <- loadTpData tpDataPath
-  absFolderPath <- Turtle.realpath folderPath
+
   let existingTpPoint = find (\tp -> name tp == addname) (tpPoints tpData)
   case existingTpPoint of
     Just tpPoint -> throwIO $ TpPointExists tpPoint
@@ -62,7 +72,7 @@ runAdd folderPath addname = do
       let newTpPoint =
             TpPoint
               { name = addname,
-                absFolderPath = filePathToString absFolderPath
+                absFolderPath = folderPath
               }
       putStrLn "creating teleport point: \n"
       tpPointPrint newTpPoint
@@ -84,7 +94,9 @@ runList = do
 
 run :: Command -> IO ()
 run = \case
-  CommandAdd {..} -> runAdd folderPath addName
+  CommandAdd {..} -> do
+    absDir <- makeSomeBaseDirAbs folderPath 
+    runAdd absDir addName
   CommandList -> runList
   CommandRemove {..} -> runRemove removeName
   CommandGoto {..} -> runGoto gotoName
@@ -102,35 +114,28 @@ setErrorColor =
         ANSI.Red
     ]
 
-getTpDataPath :: IO FilePath
-getTpDataPath = do
-  homeFolder <- Turtle.home
-  return $ homeFolder </> ".tpdata"
-
-saveTpData :: FilePath -> TpData -> IO ()
+saveTpData :: Path Abs File -> TpData -> IO ()
 saveTpData jsonFilePath tpData = do
   let dataBytestring = JSON.encode tpData
-  Turtle.touch jsonFilePath
-  B.writeFile (filePathToString jsonFilePath) dataBytestring
+  let fp = toFilePath $ jsonFilePath
+  Turtle.touch $ decodeString $ fp
+  LB.writeFile fp dataBytestring
 
-createTpDataFile :: FilePath -> IO ()
+createTpDataFile :: Path Abs File -> IO ()
 createTpDataFile jsonFilePath = saveTpData jsonFilePath defaultTpData
 
-loadTpData :: FilePath -> IO TpData
+loadTpData :: Path Abs File -> IO TpData
 loadTpData jsonFilePath = do
-  exists <- Turtle.testfile jsonFilePath
+  exists <- doesFileExist jsonFilePath
   if exists
     then decodeTpData jsonFilePath
     else do
       createTpDataFile jsonFilePath
       return defaultTpData
 
-filePathToString :: FilePath -> String
-filePathToString = Path.encodeString
-
-decodeTpData :: FilePath -> IO TpData
+decodeTpData :: Path Abs File -> IO TpData
 decodeTpData jsonFilePath = do
-  rawInput <- B.readFile (filePathToString jsonFilePath)
+  rawInput <- readFileBytes jsonFilePath
   let jsonResult = JSON.eitherDecode' rawInput
   case jsonResult of
     Left err -> throwIO $ JSONParseError jsonFilePath err
@@ -185,5 +190,6 @@ runGoto gotoName = do
   case wantedTpPoint of
     Nothing -> throwIO $ TpPointNotFound gotoName
     Just tpPoint -> do
-      Turtle.echo $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
+      -- print $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
+      print $ absFolderPath tpPoint
       Turtle.exit $ Turtle.ExitFailure 2

@@ -7,13 +7,14 @@ where
 import qualified Data.Text as T
 import Filesystem.Path.CurrentOS as Path
 import Options.Applicative
+import Path
 import Prelude hiding (FilePath)
 
 data Command
   = CommandList
   | CommandAdd
       { addName :: String,
-        folderPath :: FilePath
+        folderPath :: SomeBase Dir
       }
   | CommandRemove
       {removeName :: String}
@@ -66,7 +67,7 @@ pList = pure CommandList
 
 pAdd :: Parser Command
 pAdd =
-  CommandAdd <$> tpnameParser <*> folderParser
+  CommandAdd <$> tpnameParser <*> pDir
 
 pRemove :: Parser Command
 pRemove = CommandRemove <$> tpnameParser
@@ -92,13 +93,13 @@ tpProgDesc =
 tpHeader :: String
 tpHeader = "Teleport: move around your filesystem"
 
-folderParser :: Parser FilePath
-folderParser =
+pDir :: Parser (SomeBase Dir)
+pDir =
   argument
     ( str
-        >>= readFolderPath
+        >>= readValidSomeDir
     )
-    ( value "./"
+    ( value (Rel [reldir|"./"|])
         <> metavar "FOLDERPATH"
         <> help
           ( "path of the teleport folder to teleport to."
@@ -112,3 +113,8 @@ readFolderPath s = do
   if Path.valid path
     then return path
     else readerError ("invalid path: " ++ show path)
+
+readValidSomeDir :: String -> ReadM (SomeBase Dir)
+readValidSomeDir s = case parseSomeDir s of
+  Left p -> readerError $ "invalid path: " ++ show p
+  Right p -> return p

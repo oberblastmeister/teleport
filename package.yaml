@@ -28,6 +28,10 @@ dependencies:
 - optparse-applicative
 - turtle
 - system-filepath
+- path
+- directory
+- path-io
+- exceptions
 
 default-extensions:
 - OverloadedStrings
@@ -35,6 +39,12 @@ default-extensions:
 - LambdaCase
 - DeriveGeneric
 - TemplateHaskell
+- QuasiQuotes
+- MultiParamTypeClasses
+- FunctionalDependencies
+- FlexibleInstances
+- InstanceSigs
+- TypeApplications
 
 ghc-options:
 - -Wall
