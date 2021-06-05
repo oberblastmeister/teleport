@@ -1,47 +1,29 @@
 module Teleport.Path where
 
+import Control.Monad
 import Control.Monad.IO.Class
-import Data.Functor
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as LB
+import Data.Functor
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy.Encoding as LTE
 import Path
 import Path.IO
-import Control.Monad.Catch
-import Control.Monad
-
--- class PathIO p b t where
---   exists :: p b t -> IO Bool
-
---   absolute :: p b t -> IO (p Abs t)
-
--- instance PathIO Path Abs File where
---   withPath p f =  parseAbsFile (f p)
--- absolute p = parseAbsFile =<< makeAbsolute (toFilePath p)
-
--- instance PathIO Path b Dir where
--- absolute p = parseAbsDir =<< makeAbsolute (toFilePath p)
-
--- home :: IO (Path Abs Dir)
--- home = getHomeDirectory >>= parseAbsDir
-
--- fileExists :: Path b File -> IO Bool
--- fileExists p = doesFileExist $ toFilePath p
-
--- dirExists :: Path b Dir -> IO Bool
--- dirExists p = doesDirectoryExist $ toFilePath p
-
--- realFile :: Path b File -> IO (Path Abs File)
--- realFile p = parseAbsFile =<< makeAbsolute (toFilePath p)
-
--- realDir :: Path b Dir -> IO (Path Abs Dir)
--- realDir p = parseAbsDir =<< makeAbsolute (toFilePath p)
+import System.IO.Error
 
 assertDirExists :: MonadIO m => Path b Dir -> m ()
 assertDirExists p = do
   exists <- doesDirExist p
-  liftIO $ unless exists (ioError $ userError "Absolute directory does not exist")
+  liftIO $
+    unless
+      exists
+      ( ioError $
+          mkIOError
+            doesNotExistErrorType
+            "absolute directory"
+            Nothing
+            (Just $ toFilePath p)
+      )
 
 assertFileExists :: MonadIO m => Path b File -> m ()
 assertFileExists p = do

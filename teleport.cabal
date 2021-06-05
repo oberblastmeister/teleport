@@ -29,6 +29,7 @@ library
       Teleport.Options
       Teleport.Path
       Teleport.TpData
+      Teleport.Util
   other-modules:
       Paths_teleport
   hs-source-dirs:
@@ -52,7 +53,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , directory
-    , exceptions
+    , mtl
     , optparse-applicative
     , path
     , path-io
@@ -86,7 +87,7 @@ executable teleport-exe
     , base >=4.7 && <5
     , bytestring
     , directory
-    , exceptions
+    , mtl
     , optparse-applicative
     , path
     , path-io
@@ -122,7 +123,7 @@ test-suite teleport-test
     , base >=4.7 && <5
     , bytestring
     , directory
-    , exceptions
+    , mtl
     , optparse-applicative
     , path
     , path-io

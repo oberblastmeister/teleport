@@ -10,11 +10,10 @@ import Data.Aeson.TH
 import GHC.Generics
 import Path
 import qualified System.Console.ANSI as ANSI
-import Teleport.Path
 
 data TpPoint = TpPoint
   { name :: String,
-    absFolderPath :: Path Abs Dir
+    absDir :: Path Abs Dir
   }
   deriving (Show, Eq, Generic)
 
@@ -26,7 +25,7 @@ tpPointPrint tpPoint = do
   putStr $ name tpPoint
   ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]
   putStr "\t"
-  putStr $ toFilePath $ absFolderPath tpPoint
+  putStr $ toFilePath $ absDir tpPoint
   putStr "\n"
 
 newtype TpData = TpData

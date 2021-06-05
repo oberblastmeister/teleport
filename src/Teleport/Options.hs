@@ -107,13 +107,6 @@ pDir =
           )
     )
 
-readFolderPath :: String -> ReadM FilePath
-readFolderPath s = do
-  let path = Path.fromText (T.pack s)
-  if Path.valid path
-    then return path
-    else readerError ("invalid path: " ++ show path)
-
 readValidSomeDir :: String -> ReadM (SomeBase Dir)
 readValidSomeDir s = case parseSomeDir s of
   Left p -> readerError $ "invalid path: " ++ show p

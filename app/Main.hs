@@ -9,12 +9,12 @@ import Data.List
 import Data.Maybe
 import Data.Typeable (cast)
 import Filesystem.Path.CurrentOS as Path
+import Path
+import Path.IO
 import qualified System.Console.ANSI as ANSI
 import Teleport
 import qualified Turtle
 import Prelude hiding (FilePath)
-import Path
-import Path.IO
 
 data AppException
   = DirNotFound FilePath
@@ -40,28 +40,27 @@ instance Exception AppException where
   toException e = SomeException e
   fromException (SomeException e) = cast e
 
-handleAppException :: AppException -> IO ()
-handleAppException e = do
+exceptionHandler :: SomeException -> IO ()
+exceptionHandler e = do
   setErrorColor
   putStrLn $ "error: " ++ show e
 
 main :: IO ()
 main = do
   opts <- parseOptions
-  catch (run opts) handleAppException
+  catch (run opts) exceptionHandler
 
-makeAbsCWD :: SomeBase t -> IO (Path Abs t)
-makeAbsCWD someBase = case someBase of
-  Abs p -> return p
-  Rel p -> do
-    undefined
-    -- cwd <- getCurrentDirectory
-    -- return ((parseAbsDir cwd) </> p)
-
+run :: Command -> IO ()
+run = \case
+  CommandAdd {..} -> do
+    absDir <- makeSomeBaseDirAbs folderPath
+    runAdd absDir addName
+  CommandList -> runList
+  CommandRemove {..} -> runRemove removeName
+  CommandGoto {..} -> runGoto gotoName
 
 runAdd :: Path Abs Dir -> String -> IO ()
-runAdd folderPath addname = do
-  -- _ <- throwIO $ DirNotFound folderPath
+runAdd dir addname = do
   tpDataPath <- getTpDataPath
   tpData <- loadTpData tpDataPath
 
@@ -72,7 +71,7 @@ runAdd folderPath addname = do
       let newTpPoint =
             TpPoint
               { name = addname,
-                absFolderPath = folderPath
+                absDir = dir
               }
       putStrLn "creating teleport point: \n"
       tpPointPrint newTpPoint
@@ -92,14 +91,18 @@ runList = do
   putStr $ "(total " <> show num_points <> ")\n"
   forM_ (tpPoints tpData) tpPointPrint
 
-run :: Command -> IO ()
-run = \case
-  CommandAdd {..} -> do
-    absDir <- makeSomeBaseDirAbs folderPath 
-    runAdd absDir addName
-  CommandList -> runList
-  CommandRemove {..} -> runRemove removeName
-  CommandGoto {..} -> runGoto gotoName
+runGoto :: String -> IO ()
+runGoto gotoName = do
+  tpDataPath <- getTpDataPath
+  tpData <- loadTpData tpDataPath
+  let wantedTpPoint = find (\tp -> name tp == gotoName) (tpPoints tpData)
+
+  case wantedTpPoint of
+    Nothing -> throwIO $ TpPointNotFound gotoName
+    Just tpPoint -> do
+      -- print $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
+      print $ absDir tpPoint
+      Turtle.exit $ Turtle.ExitFailure 2
 
 setErrorColor :: IO ()
 setErrorColor =
@@ -117,8 +120,8 @@ setErrorColor =
 saveTpData :: Path Abs File -> TpData -> IO ()
 saveTpData jsonFilePath tpData = do
   let dataBytestring = JSON.encode tpData
-  let fp = toFilePath $ jsonFilePath
-  Turtle.touch $ decodeString $ fp
+  let fp = toFilePath jsonFilePath
+  Turtle.touch $ decodeString fp
   LB.writeFile fp dataBytestring
 
 createTpDataFile :: Path Abs File -> IO ()
@@ -180,16 +183,3 @@ runRemove removeName = do
             ANSI.White
         ]
       putStr "]"
-
-runGoto :: String -> IO ()
-runGoto gotoName = do
-  tpDataPath <- getTpDataPath
-  tpData <- loadTpData tpDataPath
-
-  let wantedTpPoint = find (\tp -> name tp == gotoName) (tpPoints tpData)
-  case wantedTpPoint of
-    Nothing -> throwIO $ TpPointNotFound gotoName
-    Just tpPoint -> do
-      -- print $ fromJust $ Turtle.textToLine $ T.pack $ absFolderPath tpPoint
-      print $ absFolderPath tpPoint
-      Turtle.exit $ Turtle.ExitFailure 2
